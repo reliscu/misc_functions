@@ -46,7 +46,7 @@ map2Any <- function(
       
     } else {
       
-      ## Collapse rows with one-to-many mappings:
+      ## Else, collapse rows with one-to-many mappings:
       
       mapped_ids <- mapped_ids %>%
         dplyr::group_by(UNIQUE.ID) %>%
@@ -61,7 +61,7 @@ map2Any <- function(
     
   } ## if(sum(duplicated(mapped_ids$UNIQUE.ID))>0){
   
-  ## Order of identifiers must match input order:
+  ## Enforce that data is returned in its original order:
   
   mapped_ids <- mapped_ids[match(features[,unique_id_col], mapped_ids$UNIQUE.ID),]
   
@@ -69,7 +69,9 @@ map2Any <- function(
     stop("!identical(features[,unique_id_col], mapped_ids$UNIQUE.ID)")
   }
   
-  features <- data.frame(UNIQUE.ID=features_orig, TEMP=mapped_ids[,2], features[,-c(unique_id_col)])
+  features <- data.frame(
+    UNIQUE.ID=features_orig, TEMP=mapped_ids[,2], features[,-c(unique_id_col)]
+  )
   colnames(features)[2] <- map_to
   
   return(features)
@@ -84,7 +86,9 @@ mapAlias2Symbol <- function(
   fill_NAs=F
 ){
   
-  mapping_table <- fread(list.files(pattern="ALIAS", path=file.path(mapping_tables_dir, hs_dir, "SYMBOL"), full.names=T), data.table=F)
+  mapping_table <- fread(
+    list.files(pattern="ALIAS", path=file.path(mapping_tables_dir, hs_dir, "SYMBOL"), full.names=T), data.table=F
+  )
   mapping_table <- data.frame(separate_rows(mapping_table, ALIAS, sep=" \\| "))
   mapping_table[,2] <- toupper(mapping_table[,2])
   
@@ -92,8 +96,7 @@ mapAlias2Symbol <- function(
   features[,unique_id_col] <- toupper(features[,unique_id_col])
   
   mapped_ids <- merge(
-    data.frame(features[,unique_id_col]), 
-    mapping_table, by.x=1, by.y=2, all.x=T
+    data.frame(features[,unique_id_col]), mapping_table, by.x=1, by.y=2, all.x=T
     )
   
   colnames(mapped_ids)[1] <- "UNIQUE.ID"
@@ -108,19 +111,26 @@ mapAlias2Symbol <- function(
     
     if(keep_all_mappings==F){
       
+      ## If a key maps to multiple identifiers, select only one:
+      
       mapped_ids <- mapped_ids %>%
         dplyr::group_by(UNIQUE.ID) %>%
         dplyr::slice(1)
       
     } else { ## if(keep_all_mappings==F){
       
+      ## Else, collapse rows with one-to-many mappings:
+      
       mapped_ids <- mapped_ids %>% 
         dplyr::group_by(UNIQUE.ID) %>%
-        dplyr::summarise(SYMBOL=paste(SYMBOL, collapse=" | "))
+        dplyr::summarise(SYMBOL=paste(SYMBOL, collapse=" | ")) %>%
+        as.data.frame()
       
     } ## if(keep_all_mappings==F){} else {
     
-  } ## if(nrow(dupl_ids)>0){
+  } ## if(sum(duplicated(mapped_ids$UNIQUE.ID))>0){
+  
+  ## Enforce that data is returned in its original order:
   
   mapped_ids <- mapped_ids[match(features[,unique_id_col], mapped_ids$UNIQUE.ID),]
   
@@ -129,9 +139,7 @@ mapAlias2Symbol <- function(
   }
   
   features <- data.frame(
-    UNIQUE.ID=features_orig, 
-    SYMBOL=mapped_ids$SYMBOL, 
-    features[,-c(unique_id_col)]
+    UNIQUE.ID=features_orig, SYMBOL=mapped_ids$SYMBOL, features[,-c(unique_id_col)]
   )
   
   return(features)
