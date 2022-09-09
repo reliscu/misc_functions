@@ -21,40 +21,45 @@ map2Any <- function(
     tables_dir <- file.path(array_dir, paste0(platform, "_PROBEID_mapping_tables"))
   } 
   
-  mapping_table <- fread(list.files(pattern=map_to, path=file.path(mapping_tables_dir, tables_dir), full.names=T), data.table=F)
+  mapping_table <- fread(
+    list.files(pattern=map_to, path=file.path(mapping_tables_dir, tables_dir), full.names=T), data.table=F
+  )
   mapping_table[,1] <- toupper(mapping_table[,1])
+  mapping_table <- data.frame(tidyr::separate_rows(mapping_table, !!as.name(unique_id), sep=" \\| "))
   
   features_orig <- features[,unique_id_col]
   features[,unique_id_col] <- toupper(features[,unique_id_col])
   colnames(features)[colnames(features)=="SYMBOL"] <- "SYMBOL.y" ## Rename any existing SYMBOL column
   
-  mapped_ids <- merge(features[,unique_id_col], mapping_table, by.x=1, by.y=1, all.x=T)
+  mapped_ids <- merge(data.frame(features[,unique_id_col]), mapping_table, by.x=1, by.y=1, all.x=T)
   colnames(mapped_ids)[1] <- "UNIQUE.ID"
   
-  if(keep_all_mappings==F){
+  if(sum(duplicated(mapped_ids$UNIQUE.ID))>0){
     
-    ## If a key maps to multiple identifiers, select only one:
-    
-    if(length(duplicated(mapped_ids$UNIQUE.ID))>0){
+    if(keep_all_mappings==F){
+      
+      ## If a key maps to multiple identifiers, select only one:
       
       mapped_ids <- mapped_ids %>% 
         dplyr::group_by(UNIQUE.ID) %>% 
         dplyr::slice(1)
       
-      # tidyr::separate_rows(!!as.name(map_to), sep=" \\| ") %>%
-      #   dplyr::arrange(!!as.name(map_to)) %>%
+    } else {
+      
+      ## Collapse rows with one-to-many mappings:
+      
+      mapped_ids <- mapped_ids %>%
+        dplyr::group_by(UNIQUE.ID) %>%
+        dplyr::summarise(
+          TEMP=paste(!!as.name(map_to), sep=" | ")
+        ) %>%
+        as.data.frame()
+      
+      colnames(mapped_ids)[grep("TEMP", colnames(mapped_ids))] <- map_to
       
     }
     
-  } else {
-    
-    # mapped_ids <- mapped_ids %>% 
-    #   dplyr::group_by(UNIQUE.ID) %>% 
-    #   dplyr::summarise(TEMP=paste(!!as.name(map_to), sep=" | ")) %>%
-    #   as.data.frame()
-    # colnames(mapped_ids)[grep("TEMP", colnames(mapped_ids))] <- map_to
-    
-  }
+  } ## if(sum(duplicated(mapped_ids$UNIQUE.ID))>0){
   
   ## Order of identifiers must match input order:
   
@@ -134,30 +139,3 @@ mapAlias2Symbol <- function(
 }
 
 
-#dupl_ids <- mapped_ids[mapped_ids$UNIQUE.ID%in%mapped_ids$UNIQUE.ID[duplicated(mapped_ids$UNIQUE.ID)],]
-
-# if(sum(duplicated(mapped_ids$UNIQUE.ID))>0){
-#   
-#   mapped_ids <- mapped_ids %>%
-#     dplyr::group_by(UNIQUE.ID) %>%
-#     dplyr::slice(1)
-#   
-#   # nondupl_ids <- mapped_ids[!mapped_ids$UNIQUE.ID%in%dupl_ids$UNIQUE.ID,]
-#   # 
-#   # ## If ALIAS==SYMBOL, choose that symbol:
-#   # 
-#   # alias_symbol_match <- dupl_ids[dupl_ids$UNIQUE.ID==dupl_ids$SYMBOL,]
-#   # alias_symbol_mismatch <- dupl_ids[!dupl_ids$UNIQUE.ID%in%alias_symbol_match$UNIQUE.ID,]
-#   # 
-#   # if(nrow(alias_symbol_mismatch)>0){
-#   #   
-#   #   ## For remaining aliases, keep the first symbol:
-#   #   
-#   #   alias_symbol_mismatch <- alias_symbol_mismatch %>%
-#   #     dplyr::arrange(SYMBOL) %>%
-#   #     dplyr::group_by(UNIQUE.ID) %>%
-#   #     dplyr::slice(1)
-#   
-# } ## if(nrow(dupl_ids)>0){
-# 
-# #mapped_ids <- rbind(nondupl_ids, alias_symbol_match, alias_symbol_mismatch)
