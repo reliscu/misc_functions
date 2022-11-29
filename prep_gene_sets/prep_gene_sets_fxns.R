@@ -1,9 +1,7 @@
 library(GSEABase)
 library(data.table)
 library(future.apply)
-library(openblasctl)
 
-openblas_set_num_threads(10)
 options(future.globals.maxSize=Inf)
 plan(multicore, workers=10)
 
@@ -49,19 +47,7 @@ map_sets <- function(projectname, gene_sets, legend, mapping_tables_dir, out_dir
   
   ## Map to most recent gene symbol:
   
-  gene_sets_mapped <- future_lapply(gene_sets, function(set){
-    
-    return(
-      mapAlias2Symbol(
-        features=data.frame(set), 
-        unique_id_col=1, 
-        mapping_tables_dir, 
-        keep_all_mappings=F, 
-        fill_NAs=T
-      )[,2]
-    )
-    
-  })
+  gene_sets_mapped <- future_lapply(gene_sets, function(set){mapAlias2Symbol(features=data.frame(set), unique_id_col=1, tables_path, keep_all=F, fill_NAs=T)[,2]})
   
   if(!identical(names(gene_sets), legend$SetID)){
     stop("!identical(names(gene_sets), legend$SetID)")
