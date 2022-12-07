@@ -33,7 +33,7 @@ prep_MO_sets <- function(projectname, set_dir, MO_legend, out_dir){
   
 }
 
-map_sets <- function(projectname, gene_sets, legend, mapping_tables_dir, out_dir, n_threads){
+map_sets <- function(gene_sets, legend, tables_path){
   
   ## For gene sets with entries with multiple entires per identifier, select first entry:
   
@@ -47,7 +47,9 @@ map_sets <- function(projectname, gene_sets, legend, mapping_tables_dir, out_dir
   
   ## Map to most recent gene symbol:
   
-  gene_sets_mapped <- future_lapply(gene_sets, function(set){mapAlias2Symbol(features=data.frame(set), unique_id_col=1, tables_path, keep_all=F, fill_NAs=T)[,2]})
+  gene_sets_mapped <- future_lapply(gene_sets, function(set){
+    return(mapAlias2Symbol(features=data.frame(set), unique_id_col=1, tables_path, keep_all=F, fill_NAs=T)[,2])
+  })
   
   if(!identical(names(gene_sets), legend$SetID)){
     stop("!identical(names(gene_sets), legend$SetID)")
@@ -55,7 +57,7 @@ map_sets <- function(projectname, gene_sets, legend, mapping_tables_dir, out_dir
   
   names(gene_sets_mapped) <- legend$SetID
   
-  save(gene_sets_mapped, legend, file=paste0(out_dir, "/", projectname, "_sets_mapped.RData"))
+  return(gene_sets_mapped)
   
 }
 
@@ -91,6 +93,6 @@ prep_broad_sets <- function(projectname, xml_file, version, out_dir){
   
   names(broad_sets) <- broad_legend$SetID
   
-  save(broad_sets, broad_legend, file=paste0(out_dir, "/", projectname, "_", version, ".RData"))
+  save(broad_sets, broad_legend, file=paste0(out_dir, "/", projectname, "_", version, "_sets.RData"))
   
 }

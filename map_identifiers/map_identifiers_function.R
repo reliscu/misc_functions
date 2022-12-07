@@ -11,10 +11,8 @@ map2Any <- function(features, unique_id=c("PROBEID", "ENSEMBL", "ENTREZID", "SYM
   }
   
   mapping_table <- fread(list.files(pattern=map_to, path=tables_path, full.names=T), data.table=F)
+  mapping_table <- data.frame(tidyr::separate_rows(mapping_table, !!as.name(map_to), sep=" \\| "))
   mapping_table[,c(1)] <- toupper(mapping_table[,c(1)])
-  mapping_table <- data.frame(
-    tidyr::separate_rows(mapping_table, !!as.name(unique_id), sep=" \\| ")
-  )
   
   features1 <- features[,unique_id_col]
   features[,unique_id_col] <- toupper(features[,unique_id_col])
