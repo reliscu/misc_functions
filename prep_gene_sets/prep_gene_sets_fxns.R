@@ -16,7 +16,9 @@ prep_MO_sets <- function(projectname, set_dir, MO_legend, out_dir){
   MO_legend <- MO_legend[match(set_ids, MO_legend$SetID),]
   
   if(!identical(set_ids, MO_legend$SetID)){
+    
     stop("Some gene sets in the legend file were not found in the gene set directory, or vice versa.")
+    
   }
   
   MO_sets <- lapply(1:length(set_files), function(i){
@@ -24,7 +26,9 @@ prep_MO_sets <- function(projectname, set_dir, MO_legend, out_dir){
   })
 
   if(n_distinct(MO_legend$SetID)!=nrow(MO_legend)){
+    
     stop("Set identifiers are not unique!")
+    
   }
   
   names(MO_sets) <- MO_legend$SetID
@@ -50,9 +54,11 @@ map_sets <- function(gene_sets, legend, tables_path){
   gene_sets_mapped <- future_lapply(gene_sets, function(set){
     return(mapAlias2Symbol(features=data.frame(set), unique_id_col=1, tables_path, keep_all=F, fill_NAs=T)[,2])
   })
-  
+
   if(!identical(names(gene_sets), legend$SetID)){
+    
     stop("!identical(names(gene_sets), legend$SetID)")
+    
   }
   
   names(gene_sets_mapped) <- legend$SetID
@@ -84,7 +90,9 @@ prep_broad_sets <- function(projectname, xml_file, version, out_dir){
   broad_sets <- lapply(bsets, GSEABase::geneIds)
   
   if(n_distinct(broad_legend$SetID)!=nrow(broad_legend)){
+    
     stop("Set identifiers are not unique!")
+    
   }
   
   broad_sets <- broad_sets[broad_legend$SetSize>0]
